@@ -12,28 +12,33 @@ import java.awt.geom.Line2D;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * 棋盘面板：大尺寸、现代极简、写实棋子。
+ * 棋盘面板：适中尺寸、精准点击映射、舒适配色。
  */
 public class BoardPanel extends JPanel {
 
-    public static final int CELL = 52;
-    public static final int MARGIN = 58;
-    public static final int PIECE_R = 22;
+    public static final int CELL = 50;
+    public static final int MARGIN = 54;
+    public static final int PIECE_R = 21;
     private static final int SIZE = GameState.SIZE;
-    public static final int BOARD_PX = MARGIN * 2 + CELL * (SIZE - 1);
+    public static final int BOARD_PX = MARGIN * 2 + CELL * (SIZE - 1); // 808
 
-    private static final int PAD = 34;
+    private static final int PAD = 44; // 面板四周留白
+    private static final int PANEL_SIZE = BOARD_PX + PAD * 2; // 896
 
-    private static final Color BG_COLOR      = new Color(22, 22, 40);
+    // 棋盘绘制原点（在面板坐标系中的偏移）
+    private int boardOx;
+    private int boardOy;
+
+    private static final Color BG_COLOR      = new Color(30, 30, 50);
     private static final Color BOARD_COLOR   = new Color(238, 230, 218);
-    private static final Color BOARD_SHADOW  = new Color(8, 8, 22, 80);
+    private static final Color BOARD_SHADOW  = new Color(10, 10, 28, 80);
     private static final Color GRID_COLOR    = new Color(170, 158, 138);
-    private static final Color STAR_COLOR    = new Color(145, 130, 110);
-    private static final Color LABEL_COLOR   = new Color(150, 136, 116);
+    private static final Color STAR_COLOR    = new Color(148, 134, 114);
+    private static final Color LABEL_COLOR   = new Color(152, 138, 118);
     private static final Color ACCENT_COLOR  = new Color(212, 168, 83);
     private static final Color LAST_DOT      = new Color(225, 75, 75);
     private static final Color BOARD_BORDER  = new Color(185, 172, 155);
-    private static final Color HOVER_CROSS  = new Color(212, 168, 83, 120);
+    private static final Color HOVER_CROSS   = new Color(212, 168, 83, 110);
 
     private static final int[][] STARS = {{3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}};
 
@@ -48,7 +53,7 @@ public class BoardPanel extends JPanel {
 
     public BoardPanel(GameState state) {
         this.state = state;
-        setPreferredSize(new Dimension(BOARD_PX + PAD * 2, BOARD_PX + PAD * 2));
+        setPreferredSize(new Dimension(PANEL_SIZE, PANEL_SIZE));
         setOpaque(true);
         setBackground(BG_COLOR);
 
@@ -81,9 +86,10 @@ public class BoardPanel extends JPanel {
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        int ox = (getWidth() - BOARD_PX) / 2;
-        int oy = (getHeight() - BOARD_PX) / 2;
-        g.translate(ox, oy);
+        // 每次重绘重新计算居中偏移
+        boardOx = (getWidth() - BOARD_PX) / 2;
+        boardOy = (getHeight() - BOARD_PX) / 2;
+        g.translate(boardOx, boardOy);
 
         drawBoardShadow(g);
         drawBoardSurface(g);
@@ -95,21 +101,21 @@ public class BoardPanel extends JPanel {
         drawWinHighlight(g);
         drawHoverPreview(g);
 
-        g.translate(-ox, -oy);
+        g.translate(-boardOx, -boardOy);
     }
 
     // ==================== 棋盘 ====================
 
     private void drawBoardShadow(Graphics2D g) {
         g.setColor(BOARD_SHADOW);
-        g.fill(new RoundRectangle2D.Float(4, 5, BOARD_PX, BOARD_PX, 16, 16));
+        g.fill(new RoundRectangle2D.Float(3, 4, BOARD_PX, BOARD_PX, 16, 16));
     }
 
     private void drawBoardSurface(Graphics2D g) {
         g.setColor(BOARD_COLOR);
         g.fill(new RoundRectangle2D.Float(0, 0, BOARD_PX, BOARD_PX, 14, 14));
 
-        g.setStroke(new BasicStroke(1.8f));
+        g.setStroke(new BasicStroke(1.6f));
         g.setColor(BOARD_BORDER);
         g.draw(new RoundRectangle2D.Float(1, 1, BOARD_PX - 2, BOARD_PX - 2, 12, 12));
     }
@@ -175,19 +181,17 @@ public class BoardPanel extends JPanel {
 
         Ellipse2D.Float ellipse = new Ellipse2D.Float(cx - PIECE_R, cy - PIECE_R, d, d);
 
-        // 阴影
         if (alpha > 0.5f) {
             g.setColor(new Color(0, 0, 0, (int) (alpha * 48)));
             g.fill(new Ellipse2D.Float(cx - PIECE_R + 2, cy - PIECE_R + 3, d, d));
         }
 
-        // 径向渐变
         float fx = cx - PIECE_R * 0.3f;
         float fy = cy - PIECE_R * 0.35f;
         if (player == GameState.BLACK) {
             g.setPaint(new RadialGradientPaint(fx, fy, PIECE_R * 1.15f,
                     new float[]{0f, 0.35f, 0.7f, 1f},
-                    new Color[]{new Color(110, 110, 115), new Color(48, 48, 53),
+                    new Color[]{new Color(108, 108, 113), new Color(48, 48, 53),
                                 new Color(16, 16, 20), new Color(38, 38, 43)}));
         } else {
             g.setPaint(new RadialGradientPaint(fx, fy, PIECE_R * 1.2f,
@@ -240,10 +244,10 @@ public class BoardPanel extends JPanel {
         float pulse = (float) (Math.sin(winGlowPhase) * 0.3f + 0.7f);
 
         g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.setColor(new Color(255, 210, 80, (int) (50 + pulse * 30)));
+        g.setColor(new Color(255, 210, 80, (int) (45 + pulse * 30)));
         g.draw(new Line2D.Float(x1, y1, x2, y2));
 
-        g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g.setColor(new Color(245, 197, 24, (int) (160 + pulse * 60)));
         g.draw(new Line2D.Float(x1, y1, x2, y2));
 
@@ -271,12 +275,27 @@ public class BoardPanel extends JPanel {
         g.drawLine(cx + gap, cy, cx + gap + len, cy);
     }
 
-    // ==================== 鼠标 ====================
+    // ==================== 鼠标 — 修正偏移 ====================
 
-    private static int[] toGrid(int mouseX, int mouseY) {
-        int c = Math.round((float) (mouseX - MARGIN) / CELL);
-        int r = Math.round((float) (mouseY - MARGIN) / CELL);
+    /**
+     * 将面板坐标映射到棋盘网格坐标。
+     * 减去 (boardOx, boardOy) 补偿画布居中偏移。
+     */
+    private int[] toGrid(int mouseX, int mouseY) {
+        int x = mouseX - boardOx;
+        int y = mouseY - boardOy;
+        // 距离最近交叉点的容差（CELL / 2.5 ≈ 20px）
+        int c = Math.round((float) (x - MARGIN) / CELL);
+        int r = Math.round((float) (y - MARGIN) / CELL);
         if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return null;
+
+        // 检查是否在交叉点合理范围内
+        int cx = MARGIN + c * CELL;
+        int cy = MARGIN + r * CELL;
+        int dx = x - cx, dy = y - cy;
+        int snapRange = CELL / 2;
+        if (dx * dx + dy * dy > snapRange * snapRange) return null;
+
         return new int[]{r, c};
     }
 
