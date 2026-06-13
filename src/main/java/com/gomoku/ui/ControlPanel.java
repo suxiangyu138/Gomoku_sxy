@@ -7,7 +7,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * 控制面板：现代极简风格，圆角按钮，清晰信息层级。
+ * 控制面板：标准 Swing 组件，稳定可靠的布局和文字渲染。
  */
 public class ControlPanel extends JPanel {
 
@@ -18,68 +18,75 @@ public class ControlPanel extends JPanel {
     private final JButton restartBtn;
     private final JToggleButton aiToggle;
 
-    // ---- 颜色系统 ----
     private static final Color PANEL_BG     = new Color(22, 22, 40);
     private static final Color TEXT_PRIMARY = new Color(230, 228, 222);
     private static final Color TEXT_SECOND  = new Color(170, 165, 155);
     private static final Color ACCENT       = new Color(212, 168, 83);
-    private static final Color BTN_BG       = new Color(45, 45, 65);
-    private static final Color BTN_HOVER    = new Color(58, 58, 82);
-    private static final Color TOGGLE_ON    = new Color(212, 168, 83, 35);
+    private static final Color BTN_BG       = new Color(50, 50, 70);
+    private static final Color TOGGLE_ON_BG = new Color(75, 70, 55);
     private static final Color RESTART_BG   = new Color(185, 65, 65);
-    private static final Color RESTART_HOVER= new Color(205, 75, 75);
-    private static final Color BORDER_TOP   = new Color(60, 55, 45);
+    private static final Color BORDER_TOP   = new Color(55, 55, 70);
+
+    private static final Font FONT_BOLD   = new Font("Microsoft YaHei", Font.BOLD, 14);
+    private static final Font FONT_NORMAL = new Font("Microsoft YaHei", Font.PLAIN, 13);
+    private static final Font FONT_BTN    = new Font("Microsoft YaHei", Font.BOLD, 13);
+    private static final Font FONT_SCORE  = new Font("Microsoft YaHei", Font.PLAIN, 14);
 
     public ControlPanel(BoardPanel boardPanel) {
         this.boardPanel = boardPanel;
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(16, 0));
         setBackground(PANEL_BG);
         setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_TOP),
-                new EmptyBorder(10, 20, 10, 20)));
+                new EmptyBorder(12, 22, 12, 22)));
 
-        // ---- 左侧：模式切换 + 回合信息 ----
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
+        // ---- 左侧 ----
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
         leftPanel.setOpaque(false);
 
-        // 人机 / 双人 切换
         aiToggle = new JToggleButton("人机对弈");
         aiToggle.setSelected(true);
-        styleToggle(aiToggle);
+        aiToggle.setFont(FONT_BTN);
+        aiToggle.setForeground(TEXT_PRIMARY);
+        aiToggle.setBackground(TOGGLE_ON_BG);
+        aiToggle.setFocusPainted(false);
+        aiToggle.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 95, 80), 1),
+                new EmptyBorder(5, 14, 5, 14)));
+        aiToggle.setCursor(new Cursor(Cursor.HAND_CURSOR));
         aiToggle.addActionListener(e -> {
             boardPanel.setVsAI(aiToggle.isSelected());
             aiToggle.setText(aiToggle.isSelected() ? "人机对弈" : "双人对弈");
+            if (aiToggle.isSelected()) {
+                aiToggle.setBackground(TOGGLE_ON_BG);
+            } else {
+                aiToggle.setBackground(BTN_BG);
+            }
             refreshUI();
         });
         leftPanel.add(aiToggle);
 
-        // 分隔
-        JSeparator sep = new JSeparator(SwingConstants.VERTICAL);
-        sep.setPreferredSize(new Dimension(1, 22));
-        sep.setForeground(new Color(70, 65, 55));
-        leftPanel.add(sep);
-
-        // 回合
-        turnLabel = new JLabel("●  黑棋落子");
-        turnLabel.setFont(new Font("Microsoft YaHei", Font.BOLD, 15));
+        turnLabel = new JLabel("●  黑棋  落子");
+        turnLabel.setFont(FONT_BOLD);
         turnLabel.setForeground(TEXT_PRIMARY);
         leftPanel.add(turnLabel);
 
-        // 比分
         scoreLabel = new JLabel("黑 0 : 0 白");
-        scoreLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        scoreLabel.setFont(FONT_SCORE);
         scoreLabel.setForeground(TEXT_SECOND);
         leftPanel.add(scoreLabel);
 
-        // ---- 右侧：操作按钮 ----
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        // ---- 右侧 ----
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 4));
         rightPanel.setOpaque(false);
 
-        undoBtn = makePillButton("↩ 悔棋", BTN_BG, BTN_HOVER, TEXT_PRIMARY);
+        undoBtn = new JButton("↩  悔棋");
+        styleButton(undoBtn, BTN_BG, new Color(80, 80, 105), TEXT_PRIMARY);
         undoBtn.addActionListener(e -> { boardPanel.undo(); refreshUI(); });
         rightPanel.add(undoBtn);
 
-        restartBtn = makePillButton("↻ 重新开始", RESTART_BG, RESTART_HOVER, Color.WHITE);
+        restartBtn = new JButton("↻  重新开始");
+        styleButton(restartBtn, RESTART_BG, new Color(210, 85, 85), Color.WHITE);
         restartBtn.addActionListener(e -> { boardPanel.restart(); refreshUI(); });
         rightPanel.add(restartBtn);
 
@@ -89,74 +96,54 @@ public class ControlPanel extends JPanel {
         refreshUI();
     }
 
-    // ---- 样式工具 ----
-
-    private void styleToggle(JToggleButton btn) {
-        btn.setFont(new Font("Microsoft YaHei", Font.BOLD, 12));
-        btn.setForeground(TEXT_PRIMARY);
-        btn.setBackground(TOGGLE_ON);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(80, 75, 65), 1),
-                new EmptyBorder(6, 14, 6, 14)));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        btn.addChangeListener(e -> {
-            if (btn.isSelected()) {
-                btn.setBackground(TOGGLE_ON);
-            } else {
-                btn.setBackground(BTN_BG);
-            }
-        });
-    }
-
-    private JButton makePillButton(String text, Color bg, Color hoverBg, Color fg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Microsoft YaHei", Font.BOLD, 12));
+    /**
+     * 标准 JButton 样式——不使用自定义 UI 覆盖，确保文字正常渲染。
+     */
+    private void styleButton(JButton btn, Color bg, Color hoverBg, Color fg) {
+        btn.setFont(new Font("Microsoft YaHei", Font.BOLD, 13));
         btn.setForeground(fg);
         btn.setBackground(bg);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(true);
+        btn.setContentAreaFilled(false);
         btn.setOpaque(true);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(100, 34));
+        btn.setBorder(new EmptyBorder(7, 18, 7, 18));
 
-        // 圆角通过自定义绘制
+        // 通过重写 paintComponent 实现圆角背景
         btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
             @Override
             public void paint(Graphics g, JComponent c) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 AbstractButton b = (AbstractButton) c;
-                ButtonModel model = b.getModel();
-
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int w = b.getWidth(), h = b.getHeight();
+                ButtonModel m = b.getModel();
                 Color fill = bg;
-                if (model.isPressed()) fill = fill.darker();
-                else if (model.isRollover()) fill = hoverBg;
-
+                if (m.isPressed()) {
+                    fill = bg.darker();
+                } else if (m.isRollover()) {
+                    fill = hoverBg;
+                }
                 g2.setColor(fill);
-                g2.fillRoundRect(0, 0, w - 1, h - 1, 18, 18);
-
-                // 文字
-                FontMetrics fm = g2.getFontMetrics();
-                Rectangle r = new Rectangle(0, 0, w, h);
-                SwingUtilities.layoutCompoundLabel(fm, b.getText(), null,
-                        b.getVerticalAlignment(), b.getHorizontalAlignment(),
-                        b.getVerticalTextPosition(), b.getHorizontalTextPosition(),
-                        r, new Rectangle(), r, b.getIconTextGap());
-                g2.setColor(fg);
-                g2.drawString(b.getText(), r.x, r.y + fm.getAscent());
+                g2.fillRoundRect(0, 0, w - 1, h - 1, 20, 20);
+                g2.dispose();
+                // 让父类绘制文字（位置正确）
+                super.paint(g, c);
+            }
+            @Override
+            protected void paintText(Graphics g, JComponent c, Rectangle textRect, String text) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                AbstractButton b = (AbstractButton) c;
+                FontMetrics fm = g2.getFontMetrics(b.getFont());
+                int x = (c.getWidth() - fm.stringWidth(b.getText())) / 2;
+                int y = (c.getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                g2.setColor(b.getForeground());
+                g2.drawString(b.getText(), x, y);
             }
         });
-
-        return btn;
     }
-
-    // ---- 对话框 ----
 
     public void showResultDialog() {
         GameState s = boardPanel.getState();
@@ -172,9 +159,8 @@ public class ControlPanel extends JPanel {
         } else {
             int winner = s.history.get(s.history.size() - 1)[2];
             String wn = (winner == GameState.BLACK) ? "黑棋" : "白棋";
-            String symbol = (winner == GameState.BLACK) ? "●" : "○";
-            title = symbol + " " + wn + " 获胜";
-            message = wn + " 取得胜利\n黑 " + s.score[1] + " : " + s.score[2] + " 白";
+            title = (winner == GameState.BLACK ? "● " : "○ ") + wn + " 获胜";
+            message = wn + " 取得胜利\n\n黑 " + s.score[1] + " : " + s.score[2] + " 白";
             messageType = JOptionPane.PLAIN_MESSAGE;
         }
 
@@ -185,8 +171,6 @@ public class ControlPanel extends JPanel {
         if (choice == 0) { boardPanel.restart(); refreshUI(); }
     }
 
-    // ---- 刷新 ----
-
     public void refreshUI() {
         GameState s = boardPanel.getState();
         if (s.gameOver) {
@@ -195,22 +179,22 @@ public class ControlPanel extends JPanel {
                 turnLabel.setForeground(TEXT_SECOND);
             } else {
                 int winner = s.history.get(s.history.size() - 1)[2];
-                turnLabel.setText((winner == GameState.BLACK ? "● " : "○ ")
-                        + (winner == GameState.BLACK ? "黑棋" : "白棋") + " 获胜！");
+                turnLabel.setText((winner == GameState.BLACK ? "●  " : "○  ")
+                        + (winner == GameState.BLACK ? "黑棋" : "白棋") + "  获胜！");
                 turnLabel.setForeground(ACCENT);
             }
         } else {
-            String prefix = s.currentPlayer == GameState.BLACK ? "●  " : "○  ";
+            String dotColor = s.currentPlayer == GameState.BLACK ? "●  " : "○  ";
             String name = s.currentPlayer == GameState.BLACK ? "黑棋" : "白棋";
             if (boardPanel.isVsAI() && s.currentPlayer == boardPanel.getAiPlayer()) {
-                turnLabel.setText(prefix + name + "  思考中…");
+                turnLabel.setText(dotColor + name + "  思考中…");
             } else {
-                turnLabel.setText(prefix + name + "  落子");
+                turnLabel.setText(dotColor + name + "  落子");
             }
             turnLabel.setForeground(s.currentPlayer == GameState.BLACK
                     ? new Color(210, 208, 200) : new Color(245, 243, 238));
         }
-        scoreLabel.setText("黑 " + s.score[1] + "  :  " + s.score[2] + " 白");
+        scoreLabel.setText("黑 " + s.score[1] + " : " + s.score[2] + " 白");
         undoBtn.setEnabled(!s.history.isEmpty());
     }
 }

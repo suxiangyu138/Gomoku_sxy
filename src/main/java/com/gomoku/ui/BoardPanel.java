@@ -12,27 +12,29 @@ import java.awt.geom.Line2D;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * 棋盘面板：现代极简风格渲染，真实棋子质感。
+ * 棋盘面板：现代极简风格，大尺寸棋盘，写实棋子质感。
  */
 public class BoardPanel extends JPanel {
 
-    // ---- 布局常量 ----
-    public static final int CELL = 42;
-    public static final int MARGIN = 44;
-    public static final int PIECE_R = 18;
+    // ---- 布局常量（加大棋盘） ----
+    public static final int CELL = 48;
+    public static final int MARGIN = 50;
+    public static final int PIECE_R = 20;
     private static final int SIZE = GameState.SIZE;
     public static final int BOARD_PX = MARGIN * 2 + CELL * (SIZE - 1);
 
+    private static final int PAD = 24;
+
     // ---- 颜色系统 ----
-    private static final Color BG_COLOR       = new Color(26, 26, 46);       // 深色背景
-    private static final Color BOARD_COLOR    = new Color(235, 226, 212);   // 暖白棋盘
-    private static final Color BOARD_SHADOW   = new Color(10, 10, 25, 80); // 棋盘阴影
-    private static final Color GRID_COLOR     = new Color(175, 160, 140);  // 网格线
-    private static final Color STAR_COLOR     = new Color(140, 125, 105);  // 星位
-    private static final Color LABEL_COLOR    = new Color(145, 130, 110);  // 坐标
-    private static final Color ACCENT_COLOR   = new Color(212, 168, 83);   // 金色强调
-    private static final Color LAST_DOT       = new Color(220, 80, 80);    // 最后落子标记
-    private static final Color WIN_GLOW       = new Color(245, 197, 24);   // 获胜高亮
+    private static final Color BG_COLOR      = new Color(26, 26, 46);
+    private static final Color BOARD_COLOR   = new Color(235, 226, 212);
+    private static final Color BOARD_SHADOW  = new Color(10, 10, 25, 70);
+    private static final Color GRID_COLOR    = new Color(175, 160, 140);
+    private static final Color STAR_COLOR    = new Color(145, 130, 110);
+    private static final Color LABEL_COLOR   = new Color(145, 130, 110);
+    private static final Color ACCENT_COLOR  = new Color(212, 168, 83);
+    private static final Color LAST_DOT      = new Color(220, 80, 80);
+    private static final Color BOARD_BORDER  = new Color(190, 178, 162);
 
     // 星位坐标
     private static final int[][] STARS = {{3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}};
@@ -47,12 +49,13 @@ public class BoardPanel extends JPanel {
     private boolean aiThinking;
 
     // 动画
-    private float winGlowPhase = 0f;
-    private Timer animTimer;
+    private float winGlowPhase;
+    private final Timer animTimer;
 
     public BoardPanel(GameState state) {
         this.state = state;
-        setPreferredSize(new Dimension(BOARD_PX + 20, BOARD_PX + 20));
+        int panelSize = BOARD_PX + PAD * 2;
+        setPreferredSize(new Dimension(panelSize, panelSize));
         setOpaque(true);
         setBackground(BG_COLOR);
 
@@ -60,7 +63,6 @@ public class BoardPanel extends JPanel {
         addMouseListener(handler);
         addMouseMotionListener(handler);
 
-        // 获胜动画
         animTimer = new Timer(30, e -> {
             if (state.winCells != null) {
                 winGlowPhase += 0.06f;
@@ -86,19 +88,17 @@ public class BoardPanel extends JPanel {
         Graphics2D g = (Graphics2D) g0;
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // 居中对齐棋盘
         int ox = (getWidth() - BOARD_PX) / 2;
         int oy = (getHeight() - BOARD_PX) / 2;
         g.translate(ox, oy);
 
-        drawBackground(g);
         drawBoardShadow(g);
         drawBoardSurface(g);
         drawGrid(g);
         drawStars(g);
-        drawLabels(g);
+        drawCoordinates(g);
         drawPieces(g);
         drawLastMoveMark(g);
         drawWinHighlight(g);
@@ -107,53 +107,33 @@ public class BoardPanel extends JPanel {
         g.translate(-ox, -oy);
     }
 
-    // ==================== 背景 ====================
-
-    private void drawBackground(Graphics2D g) {
-        // 细微渐变
-        GradientPaint bg = new GradientPaint(0, 0, new Color(26, 26, 46),
-                BOARD_PX, BOARD_PX, new Color(22, 22, 40));
-        g.setPaint(bg);
-        g.fillRect(-20, -20, BOARD_PX + 40, BOARD_PX + 40);
-    }
+    // ==================== 棋盘 ====================
 
     private void drawBoardShadow(Graphics2D g) {
         g.setColor(BOARD_SHADOW);
-        g.fill(new RoundRectangle2D.Float(2, 2, BOARD_PX, BOARD_PX, 12, 12));
+        g.fill(new RoundRectangle2D.Float(3, 4, BOARD_PX, BOARD_PX, 14, 14));
     }
 
-    // ==================== 棋盘 ====================
-
     private void drawBoardSurface(Graphics2D g) {
-        // 主色
         g.setColor(BOARD_COLOR);
-        g.fill(new RoundRectangle2D.Float(0, 0, BOARD_PX, BOARD_PX, 10, 10));
-
-        // 微妙纹理（模拟纸纹）
-        g.setStroke(new BasicStroke(0.3f));
-        for (int i = 0; i < 120; i++) {
-            int alpha = 6 + (i * 7) % 9;
-            g.setColor(new Color(200, 188, 170, alpha));
-            int y = i * 5 + 2;
-            int offset = (i * 3) % 7 - 3;
-            g.drawLine(8, y, BOARD_PX - 8, y + offset);
-        }
+        g.fill(new RoundRectangle2D.Float(0, 0, BOARD_PX, BOARD_PX, 12, 12));
 
         // 内边框
-        g.setStroke(new BasicStroke(1.8f));
-        g.setColor(new Color(190, 178, 162));
-        g.draw(new RoundRectangle2D.Float(1, 1, BOARD_PX - 2, BOARD_PX - 2, 8, 8));
+        g.setStroke(new BasicStroke(1.6f));
+        g.setColor(BOARD_BORDER);
+        g.draw(new RoundRectangle2D.Float(1, 1, BOARD_PX - 2, BOARD_PX - 2, 10, 10));
     }
 
     // ==================== 网格线 ====================
 
     private void drawGrid(Graphics2D g) {
-        g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
         g.setColor(GRID_COLOR);
+        int end = MARGIN + CELL * (SIZE - 1);
         for (int i = 0; i < SIZE; i++) {
             int p = MARGIN + i * CELL;
-            g.drawLine(MARGIN, p, MARGIN + CELL * (SIZE - 1), p);
-            g.drawLine(p, MARGIN, p, MARGIN + CELL * (SIZE - 1));
+            g.drawLine(MARGIN, p, end, p);
+            g.drawLine(p, MARGIN, p, end);
         }
     }
 
@@ -162,24 +142,35 @@ public class BoardPanel extends JPanel {
         for (int[] s : STARS) {
             int sx = MARGIN + s[1] * CELL;
             int sy = MARGIN + s[0] * CELL;
-            g.fillOval(sx - 3, sy - 3, 7, 7);
+            g.fillOval(sx - 4, sy - 4, 8, 8);
         }
     }
 
-    private void drawLabels(Graphics2D g) {
-        g.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+    private void drawCoordinates(Graphics2D g) {
+        Font font = new Font("Microsoft YaHei", Font.PLAIN, 11);
+        g.setFont(font);
         g.setColor(LABEL_COLOR);
         FontMetrics fm = g.getFontMetrics();
-        for (int i = 0; i < SIZE; i++) {
-            String col = String.valueOf((char) ('A' + i));
-            int tx = MARGIN + i * CELL - fm.stringWidth(col) / 2;
-            g.drawString(col, tx, MARGIN - 10);
-            g.drawString(col, tx, BOARD_PX - MARGIN + 18);
 
+        for (int i = 0; i < SIZE; i++) {
+            int pos = MARGIN + i * CELL;
+
+            // 列标 A-O（顶部 & 底部）
+            String col = String.valueOf((char) ('A' + i));
+            int cw = fm.stringWidth(col);
+            int ch = fm.getAscent();
+            // 顶部：baseline 在 MARGIN 上方留出 14px 间距
+            g.drawString(col, pos - cw / 2, MARGIN - 14 + ch / 3);
+            // 底部
+            g.drawString(col, pos - cw / 2, BOARD_PX - MARGIN + 22 + ch / 3);
+
+            // 行标 1-15（左侧 & 右侧）
             String row = String.valueOf(SIZE - i);
-            int ty = MARGIN + i * CELL + fm.getAscent() / 2 - 1;
-            g.drawString(row, MARGIN - fm.stringWidth(row) - 10, ty);
-            g.drawString(row, BOARD_PX - MARGIN + 14, ty);
+            int rw = fm.stringWidth(row);
+            // 左侧
+            g.drawString(row, MARGIN - rw - 16, pos + ch / 3);
+            // 右侧
+            g.drawString(row, BOARD_PX - MARGIN + 20, pos + ch / 3);
         }
     }
 
@@ -195,9 +186,6 @@ public class BoardPanel extends JPanel {
         }
     }
 
-    /**
-     * 使用 RadialGradientPaint 渲染写实棋子。
-     */
     private void drawPiece(Graphics2D g, int r, int c, int player, float alpha) {
         int cx = MARGIN + c * CELL;
         int cy = MARGIN + r * CELL;
@@ -208,15 +196,15 @@ public class BoardPanel extends JPanel {
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
         }
 
-        Ellipse2D.Float ellipse = new Ellipse2D.Float(cx - PIECE_R, cy - PIECE_R, d, d);
-
-        // 阴影
+        // 阴影（offset 右下）
         if (alpha > 0.5f) {
-            g.setColor(new Color(0, 0, 0, (int) (alpha * 50)));
-            g.fill(new Ellipse2D.Float(cx - PIECE_R + 1, cy - PIECE_R + 2, d, d));
+            g.setColor(new Color(0, 0, 0, (int) (alpha * 45)));
+            g.fill(new Ellipse2D.Float(cx - PIECE_R + 2, cy - PIECE_R + 3, d, d));
         }
 
-        // 棋子主体（径向渐变模拟光照）
+        Ellipse2D.Float ellipse = new Ellipse2D.Float(cx - PIECE_R, cy - PIECE_R, d, d);
+
+        // 径向渐变（光照在左上）
         if (player == GameState.BLACK) {
             float[] dist = {0.0f, 0.35f, 0.7f, 1.0f};
             Color[] colors = {
@@ -225,9 +213,8 @@ public class BoardPanel extends JPanel {
                 new Color(18, 18, 22),
                 new Color(35, 35, 40)
             };
-            RadialGradientPaint p = new RadialGradientPaint(
-                cx - PIECE_R * 0.3f, cy - PIECE_R * 0.35f, PIECE_R * 1.15f, dist, colors);
-            g.setPaint(p);
+            g.setPaint(new RadialGradientPaint(
+                    cx - PIECE_R * 0.3f, cy - PIECE_R * 0.35f, PIECE_R * 1.15f, dist, colors));
         } else {
             float[] dist = {0.0f, 0.3f, 0.65f, 1.0f};
             Color[] colors = {
@@ -236,13 +223,12 @@ public class BoardPanel extends JPanel {
                 new Color(210, 205, 195),
                 new Color(225, 220, 212)
             };
-            RadialGradientPaint p = new RadialGradientPaint(
-                cx - PIECE_R * 0.3f, cy - PIECE_R * 0.35f, PIECE_R * 1.2f, dist, colors);
-            g.setPaint(p);
+            g.setPaint(new RadialGradientPaint(
+                    cx - PIECE_R * 0.3f, cy - PIECE_R * 0.35f, PIECE_R * 1.2f, dist, colors));
         }
         g.fill(ellipse);
 
-        // 边框
+        // 白棋边框
         if (player == GameState.WHITE) {
             g.setStroke(new BasicStroke(0.8f));
             g.setColor(new Color(160, 150, 140, (int) (alpha * 180)));
@@ -275,7 +261,6 @@ public class BoardPanel extends JPanel {
         int n = wc.length / 2;
         if (n < 5) return;
 
-        // 找出两端
         int minR = wc[0], minC = wc[1], maxR = wc[0], maxC = wc[1];
         for (int i = 1; i < n; i++) {
             if (wc[i * 2] < minR || (wc[i * 2] == minR && wc[i * 2 + 1] < minC)) {
@@ -288,17 +273,18 @@ public class BoardPanel extends JPanel {
         int x1 = MARGIN + minC * CELL, y1 = MARGIN + minR * CELL;
         int x2 = MARGIN + maxC * CELL, y2 = MARGIN + maxR * CELL;
 
+        float pulse = (float) (Math.sin(winGlowPhase) * 0.3f + 0.7f);
+
         // 发光连线
-        float pulse = (float) (Math.sin(winGlowPhase) * 0.3 + 0.7);
         g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.setColor(new Color(255, 210, 80, (int) (40 + pulse * 30)));
+        g.setColor(new Color(255, 210, 80, (int) (50 + pulse * 30)));
         g.draw(new Line2D.Float(x1, y1, x2, y2));
 
         g.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.setColor(new Color(245, 197, 24, (int) (160 + pulse * 60)));
+        g.setColor(new Color(245, 197, 24, (int) (170 + pulse * 60)));
         g.draw(new Line2D.Float(x1, y1, x2, y2));
 
-        // 获胜棋子光晕
+        // 光晕环
         g.setStroke(new BasicStroke(3f));
         for (int i = 0; i < n; i++) {
             int cx = MARGIN + wc[i * 2 + 1] * CELL;
@@ -312,25 +298,18 @@ public class BoardPanel extends JPanel {
         if (hoverR < 0 || hoverC < 0 || state.gameOver || aiThinking) return;
         if (state.board[hoverR][hoverC] != GameState.EMPTY) return;
 
-        // 半透明预览
         drawPiece(g, hoverR, hoverC, state.currentPlayer, 0.38f);
 
         // 十字准心
         int cx = MARGIN + hoverC * CELL;
         int cy = MARGIN + hoverR * CELL;
-        g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g.setColor(new Color(state.currentPlayer == GameState.BLACK ? 80 : 200,
-                state.currentPlayer == GameState.BLACK ? 80 : 200,
-                state.currentPlayer == GameState.BLACK ? 80 : 200, 90));
         int gap = PIECE_R + 5;
         int len = 8;
-        // 上
+        g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(ACCENT_COLOR.getRed(), ACCENT_COLOR.getGreen(), ACCENT_COLOR.getBlue(), 100));
         g.drawLine(cx, cy - gap, cx, cy - gap - len);
-        // 下
         g.drawLine(cx, cy + gap, cx, cy + gap + len);
-        // 左
         g.drawLine(cx - gap, cy, cx - gap - len, cy);
-        // 右
         g.drawLine(cx + gap, cy, cx + gap + len, cy);
     }
 
@@ -358,7 +337,6 @@ public class BoardPanel extends JPanel {
                     controlPanel.refreshUI();
                     if (state.gameOver) { controlPanel.showResultDialog(); return; }
                 }
-                // AI
                 if (!state.gameOver && vsAI) {
                     aiThinking = true;
                     repaint();
