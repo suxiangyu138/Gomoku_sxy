@@ -16,14 +16,14 @@ import java.awt.geom.RoundRectangle2D;
  */
 public class BoardPanel extends JPanel {
 
-    public static final int CELL = 50;
-    public static final int MARGIN = 54;
-    public static final int PIECE_R = 21;
+    public static final int CELL = 35;
+    public static final int MARGIN = 38;
+    public static final int PIECE_R = 15;
     private static final int SIZE = GameState.SIZE;
-    public static final int BOARD_PX = MARGIN * 2 + CELL * (SIZE - 1); // 808
+    public static final int BOARD_PX = MARGIN * 2 + CELL * (SIZE - 1); // 566
 
-    private static final int PAD = 44; // 面板四周留白
-    private static final int PANEL_SIZE = BOARD_PX + PAD * 2; // 896
+    private static final int PAD = 30; // 面板四周留白
+    private static final int PANEL_SIZE = BOARD_PX + PAD * 2; // 626
 
     // 棋盘绘制原点（在面板坐标系中的偏移）
     private int boardOx;
