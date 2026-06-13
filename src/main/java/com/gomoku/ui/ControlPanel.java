@@ -20,11 +20,6 @@ public class ControlPanel extends JPanel {
     private final JButton undoBtn;
     private final JButton restartBtn;
 
-    // 自定义 pill 切换
-    private JPanel modeSwitch;
-    private JLabel aiLabel;
-    private JLabel pvpLabel;
-    private JPanel sliderKnob;
     private boolean modeIsAI = true;
 
     // ---- 颜色 ----
@@ -51,9 +46,9 @@ public class ControlPanel extends JPanel {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 18, 6));
         leftPanel.setOpaque(false);
 
-        // 自定义 pill 模式切换
-        modeSwitch = createModeSwitch();
-        leftPanel.add(modeSwitch);
+        // Pill 模式切换（纯自绘，无子组件抢占鼠标）
+        JPanel pill = createPillSwitch();
+        leftPanel.add(pill);
 
         turnLabel = new JLabel("●  黑棋  落子");
         turnLabel.setFont(new Font("Microsoft YaHei", Font.BOLD, 15));
@@ -83,91 +78,94 @@ public class ControlPanel extends JPanel {
         refreshUI();
     }
 
-    // ==================== 自定义 Pill 切换 ====================
+    // ==================== Pill 切换（纯自绘） ====================
 
-    private JPanel createModeSwitch() {
-        JPanel track = new JPanel(null) {
+    private static final int PILL_W = 180;
+    private static final int PILL_H = 36;
+    private static final int KNOB_W = 86;
+    private static final int KNOB_GAP = 3;
+    private static final Font PILL_FONT = new Font("Microsoft YaHei", Font.BOLD, 13);
+
+    private float knobX; // 动画用（在 paintComponent 中直接绘制）
+    private Timer pillAnim;
+
+    private JPanel createPillSwitch() {
+        knobX = 3; // 初始：人机模式，滑块在左
+
+        JPanel pill = new JPanel(null) {
             @Override
             protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                int w = getWidth(), h = getHeight();
+
+                // 轨道
                 g2.setColor(TRACK_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 22, 22));
-            }
-        };
-        track.setPreferredSize(new Dimension(184, 38));
-        track.setOpaque(false);
-        track.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                g2.fill(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, h / 2f, h / 2f));
 
-        // 滑块
-        sliderKnob = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // 滑块
+                int kx = Math.round(knobX);
                 g2.setColor(KNOB_COLOR);
-                g2.fill(new RoundRectangle2D.Float(2, 2, getWidth() - 4, getHeight() - 4, 19, 19));
+                g2.fill(new RoundRectangle2D.Float(kx, KNOB_GAP, KNOB_W, h - KNOB_GAP * 2,
+                        (h - KNOB_GAP * 2) / 2f, (h - KNOB_GAP * 2) / 2f));
+
+                // 文字 — "人机" 和 "双人"
+                g2.setFont(PILL_FONT);
+                FontMetrics fm = g2.getFontMetrics();
+
+                // 左边 "人机"
+                float leftProgress = (knobX - 3) / (PILL_W - KNOB_W - KNOB_GAP * 2);
+                leftProgress = Math.max(0, Math.min(1, leftProgress));
+                g2.setColor(lerpColor(new Color(30, 30, 45), new Color(180, 175, 165), leftProgress));
+                String leftText = "人机";
+                int lw = fm.stringWidth(leftText);
+                g2.drawString(leftText, KNOB_W / 2 - lw / 2 + 3, h / 2 + fm.getAscent() / 2 - 1);
+
+                // 右边 "双人"
+                g2.setColor(lerpColor(new Color(180, 175, 165), new Color(30, 30, 45), leftProgress));
+                String rightText = "双人";
+                int rw = fm.stringWidth(rightText);
+                g2.drawString(rightText, PILL_W - KNOB_W + KNOB_W / 2 - rw / 2 + 3, h / 2 + fm.getAscent() / 2 - 1);
             }
         };
-        sliderKnob.setOpaque(false);
-        sliderKnob.setBounds(3, 3, 88, 32);
+        pill.setPreferredSize(new Dimension(PILL_W, PILL_H));
+        pill.setOpaque(false);
+        pill.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // 标签
-        aiLabel = new JLabel("人机", SwingConstants.CENTER);
-        aiLabel.setFont(new Font("Microsoft YaHei", Font.BOLD, 13));
-        aiLabel.setForeground(new Color(30, 30, 45));
-        aiLabel.setBounds(3, 3, 88, 32);
-        aiLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        pvpLabel = new JLabel("双人", SwingConstants.CENTER);
-        pvpLabel.setFont(new Font("Microsoft YaHei", Font.BOLD, 13));
-        pvpLabel.setForeground(new Color(180, 175, 165));
-        pvpLabel.setBounds(93, 3, 88, 32);
-        pvpLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        // 点击事件
-        MouseAdapter clickHandler = new MouseAdapter() {
+        pill.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                boolean clickedAI = e.getX() < track.getWidth() / 2;
-                if (clickedAI != modeIsAI) {
-                    modeIsAI = clickedAI;
-                    animateSlider();
+            public void mousePressed(MouseEvent e) {
+                boolean clickLeft = e.getX() < pill.getWidth() / 2;
+                if (clickLeft != modeIsAI) {
+                    modeIsAI = clickLeft;
+                    animatePill(pill);
                     boardPanel.setVsAI(modeIsAI);
                     refreshUI();
                 }
             }
-        };
-        track.addMouseListener(clickHandler);
-        aiLabel.addMouseListener(clickHandler);
-        pvpLabel.addMouseListener(clickHandler);
+        });
 
-        track.add(sliderKnob);
-        track.add(aiLabel);
-        track.add(pvpLabel);
-
-        return track;
+        return pill;
     }
 
-    private void animateSlider() {
-        int targetX = modeIsAI ? 3 : 93;
-        int startX = sliderKnob.getX();
-        Timer anim = new Timer(10, null);
-        anim.addActionListener(e -> {
-            int current = sliderKnob.getX();
-            int next = current + (targetX - current) / 3;
-            if (Math.abs(next - targetX) <= 1) {
-                sliderKnob.setLocation(targetX, 3);
-                anim.stop();
+    private void animatePill(JPanel pill) {
+        if (pillAnim != null && pillAnim.isRunning()) pillAnim.stop();
+        float targetX = modeIsAI ? 3 : PILL_W - KNOB_W - KNOB_GAP;
+        pillAnim = new Timer(12, null);
+        pillAnim.addActionListener(e -> {
+            float diff = targetX - knobX;
+            if (Math.abs(diff) < 0.5f) {
+                knobX = targetX;
+                pillAnim.stop();
             } else {
-                sliderKnob.setLocation(next, 3);
+                knobX += diff * 0.35f;
             }
-            // 更新文字颜色
-            float progress = (float)(sliderKnob.getX() - 3) / 90f;
-            aiLabel.setForeground(lerpColor(new Color(30, 30, 45), new Color(180, 175, 165), progress));
-            pvpLabel.setForeground(lerpColor(new Color(180, 175, 165), new Color(30, 30, 45), progress));
+            pill.repaint();
         });
-        anim.start();
+        pillAnim.start();
     }
 
     private static Color lerpColor(Color a, Color b, float t) {
