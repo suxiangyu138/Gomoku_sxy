@@ -138,26 +138,29 @@ public class BoardPanel extends JPanel {
         for (int[] s : STARS) {
             int sx = MARGIN + s[1] * CELL;
             int sy = MARGIN + s[0] * CELL;
-            g.fillOval(sx - 4, sy - 4, 8, 8);
+            g.fillOval(sx - 3, sy - 3, 6, 6);
         }
     }
 
     private void drawCoordinates(Graphics2D g) {
-        g.setFont(new Font("Microsoft YaHei", Font.PLAIN, 12));
+        g.setFont(new Font("Microsoft YaHei", Font.PLAIN, 9));
         g.setColor(LABEL_COLOR);
         FontMetrics fm = g.getFontMetrics();
+        int ascent = fm.getAscent();
         for (int i = 0; i < SIZE; i++) {
             int pos = MARGIN + i * CELL;
+
+            // 列标 A-O
             String col = String.valueOf((char) ('A' + i));
             int cw = fm.stringWidth(col);
-            int cy = fm.getAscent() / 2;
-            g.drawString(col, pos - cw / 2, MARGIN - 18 + cy);
-            g.drawString(col, pos - cw / 2, BOARD_PX - MARGIN + 24 + cy);
+            g.drawString(col, pos - cw / 2, MARGIN - 10 + ascent / 2);
+            g.drawString(col, pos - cw / 2, BOARD_PX - MARGIN + 16 + ascent / 2);
 
+            // 行标 1-15
             String row = String.valueOf(SIZE - i);
             int rw = fm.stringWidth(row);
-            g.drawString(row, MARGIN - rw - 18, pos + cy);
-            g.drawString(row, BOARD_PX - MARGIN + 22, pos + cy);
+            g.drawString(row, MARGIN - rw - 10, pos + ascent / 2);
+            g.drawString(row, BOARD_PX - MARGIN + 14, pos + ascent / 2);
         }
     }
 
